@@ -6,17 +6,22 @@ import numpy as np
 from tqdm import tqdm
 from scipy.io import wavfile
 
+from datasets import load_dataset, Audio
+
 # sample rate
-SAMPLE_RATE=44100
+TARGET_SAMPLE_RATE=16000
 
 # input dirs
 IN_DIR_TRANSCRIPTS = "./data/raw/SBCSAE/transcripts/"
-IN_DIR_AUDIO = "./data/raw/SBCSAE/audio/"
+IN_DIR_AUDIO = "./data/raw/SBCSAE/audio"
 OUT_PATH = "./data/SBCSAE.pkl"
 
 # get the actual files
 in_files = sorted(glob.glob(os.path.join(IN_DIR_TRANSCRIPTS, "*.flo.cex")))
-in_audios = sorted(glob.glob(os.path.join(IN_DIR_AUDIO, "*.wav")))
+
+# load audio dataset
+in_audios = load_dataset("audiofolder", data_dir=IN_DIR_AUDIO)
+in_audios = in_audios.cast_column("audio", Audio(sampling_rate=16000))["train"]
 
 def process_pair(f,w):
     """Processes a pair of files for data
@@ -25,8 +30,8 @@ def process_pair(f,w):
     ----------
     f : str
         The input .flo.cex to process (output of simply `flo "+t*" *`)
-    w : str
-        The .wav file to process, sample rate 44100
+    w : dict
+        The dataset element to process, sample rate 16000
 
     Returns
     -------
@@ -51,16 +56,9 @@ def process_pair(f,w):
     text = [re.sub(r"\x15(\d+)_(\d+)\x15", "", i).strip() for i in text]
 
     # now, audio
-    rate, data = wavfile.read(w)
-    # extract left channel and take sin (NO IDEA WHY but apparently that's
-    # the actual activations)
-    try:
-        mono_data = np.sin(data[:, 0])
-    except IndexError:
-        # our file is mono!
-        mono_data = np.sin(data)
+    mono_data = w["audio"]["array"]
     # and now, parcel out data alignments for each chunk
-    mono_data_sliced = [mono_data[int(round(i[0]/1000))*SAMPLE_RATE:int(round(i[1]//1000))*SAMPLE_RATE]
+    mono_data_sliced = [mono_data[(i[0]*TARGET_SAMPLE_RATE)//1000:(i[1]*TARGET_SAMPLE_RATE)//1000]
                         if i else None for i in bullets]
 
     # now we roll
@@ -83,4 +81,3 @@ for i,j in tqdm(zip(in_files, in_audios), total=len(in_files)):
 with open(OUT_PATH, "wb") as df:
     pickle.dump(results, df)
                 
-
