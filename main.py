@@ -5,6 +5,9 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 from torch.optim import AdamW
 
+# dataset utils
+from datasets import load_from_disk
+
 # Data
 import scipy.signal as sps
 
@@ -21,7 +24,7 @@ hyperparametre_defaults = dict(
     lr = 1e-5,
     batch_size = 16,
     epochs = 64,
-    data = "./data/SBCSAE.pkl" 
+    data = "./data/SBCSAE" 
 )
 
 # start wandb
@@ -40,14 +43,13 @@ class ChatAudioData(Dataset):
 
     def __init__(self, datafile, sample_rate=44100):
         # load raw data
-        with open(datafile, 'rb') as df:
-            self.raw_data = pickle.load(df)
+        self.raw_data = load_from_disk(datafile)
 
     def __getitem__(self, indx):
         # get sample
-        text, _, audio = raw_data[indx]
+        data = self.raw_data[indx]
 
-        return text, audio
+        return data["text"], data["audio"]
 
     def __len__(self):
         return len(self.raw_data)
