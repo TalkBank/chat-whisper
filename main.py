@@ -22,7 +22,7 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 # weights and biases
 hyperparametre_defaults = dict(
     lr = 1e-5,
-    batch_size = 16,
+    batch_size = 2,
     epochs = 64,
     data = "./data/SBCSAE" 
 )
@@ -56,10 +56,10 @@ class ChatAudioData(Dataset):
 
 dataset = ChatAudioData(DATA)
 dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=lambda x:list(zip(*x)))
-processor = WhisperFeatureExtractor.from_pretrained("openai/whisper-small", language="English", task="transcribe")
-tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-small", language="English", task="transcribe")
+processor = WhisperFeatureExtractor.from_pretrained("openai/whisper-tiny", language="English", task="transcribe")
+tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-tiny", language="English", task="transcribe")
 
-model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small.en").to(DEVICE)
+model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-tiny.en").to(DEVICE)
 optim = AdamW(model.parameters(), lr=LR)
 
 for _ in range(EPOCHS): 
