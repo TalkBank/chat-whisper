@@ -24,12 +24,13 @@ hyperparametre_defaults = dict(
     lr = 1e-5,
     batch_size = 2,
     epochs = 64,
-    data = "./data/SBCSAE" 
+    data = "./data/SBCSAE",
+    model="openai/whisper-tiny"
 )
 
 # start wandb
 wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults, mode="disabled")
-# wandb.init(project='utok', entity='jemoka', config=hyperparametre_defaults)
+# wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
 
 # get config
 config = wandb.config
@@ -38,6 +39,7 @@ DATA = config.data
 BATCH_SIZE = config.batch_size
 LR = config.lr
 EPOCHS = config.epochs
+MODEL = config.model
 
 class ChatAudioData(Dataset):
 
@@ -56,10 +58,10 @@ class ChatAudioData(Dataset):
 
 dataset = ChatAudioData(DATA)
 dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=lambda x:list(zip(*x)))
-processor = WhisperFeatureExtractor.from_pretrained("openai/whisper-tiny", language="English", task="transcribe")
-tokenizer = WhisperTokenizer.from_pretrained("openai/whisper-tiny", language="English", task="transcribe")
+processor = WhisperFeatureExtractor.from_pretrained(MODEL, language="English", task="transcribe")
+tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
-model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-tiny.en").to(DEVICE)
+model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}.en").to(DEVICE)
 optim = AdamW(model.parameters(), lr=LR)
 
 for _ in range(EPOCHS): 
