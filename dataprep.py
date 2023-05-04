@@ -14,7 +14,7 @@ TARGET_SAMPLE_RATE=16000
 # input dirs
 IN_DIR_TRANSCRIPTS = "./data/raw/SBCSAE/transcripts/"
 IN_DIR_AUDIO = "./data/raw/SBCSAE/audio"
-OUT_PATH = "./data/SBCSAE.pkl"
+OUT_PATH = "./data/SBCSAE.parquet"
 
 # get the actual files
 in_files = sorted(glob.glob(os.path.join(IN_DIR_TRANSCRIPTS, "*.flo.cex")))
@@ -77,7 +77,8 @@ results = []
 for i,j in tqdm(zip(in_files, in_audios), total=len(in_files)):
     results += process_pair(i, j)
 
-# dump!
-with open(OUT_PATH, "wb") as df:
-    pickle.dump(results, df)
-                
+import pandas as pd
+df = pd.DataFrame(results)
+df.columns=["text", "timestamp", "audio"]
+df.to_parquet(OUT_PATH)
+
