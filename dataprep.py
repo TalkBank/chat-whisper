@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 from scipy.io import wavfile
 
-from datasets import load_dataset, Audio
+from datasets import load_dataset, Audio, Dataset
 
 # sample rate
 TARGET_SAMPLE_RATE=16000
@@ -46,6 +46,8 @@ def process_pair(f,w):
     text = list(filter(lambda x:x[0] != "%", text))
 
     # filter out the speaker tags
+    speakers = [re.search(r"\*(\w+):\t", i) for i in text]
+    speakers = [i.group(1) if i else None for i in speakers]
     text = [re.sub(r"\*\w+:\t", "", i) for i in text]
 
     # now, we then grab the bulleted timeframes
@@ -55,14 +57,43 @@ def process_pair(f,w):
     # and then get rid of it from the bullets
     text = [re.sub(r"\x15(\d+)_(\d+)\x15", "", i).strip() for i in text]
 
+    # seperate each turn out
+    turns = []
+    # prune one-off utterances
+    turns_loc = list(filter(lambda x:x[1], enumerate(speakers)))
+    # prune same speakers (to extract turns)
+    # pruning rule: if the CURRENT speaker is the same as
+    # the PREVIOUS speaker; prune it
+    turns_loc = [x for i, x in enumerate(turns_loc)
+                 if x[1] != turns_loc[i-1][1]]
+    # create one-off pairwise shifts; cut the first one
+    # which starts at "blank" and begins at time 0
+    turns_index = list(zip([None]+turns_loc, turns_loc))[1:]
+    turns_index = [(i[0], j[0]) for i,j in turns_index]
+    # append the turn towards the end (i.e. the turn that ends
+    # the file)
+    turns_index.append((turns_index[-1][1], len(speakers)))
+
+    # now, grab the bullets corresponding to the timepoints
+    # one off error because the difference between slicing l[a:b] and indexing l[b-1]
+    bullets_turns = [(bullets[i][0], bullets[j-1][1])
+                     if (bullets[i] and bullets[j-1]) else None
+                     for i,j in turns_index] 
+
     # now, audio
     mono_data = w["audio"]["array"]
     # and now, parcel out data alignments for each chunk
-    mono_data_sliced = [mono_data[(i[0]*TARGET_SAMPLE_RATE)//1000:(i[1]*TARGET_SAMPLE_RATE)//1000]
-                        if i else None for i in bullets]
+    # +500 smudge factor 
+    mono_data_sliced = [mono_data[(i[0]*TARGET_SAMPLE_RATE)//1000:(i[1]*TARGET_SAMPLE_RATE)//1000+1000]
+                        if i else None for i in bullets_turns]
+
+    # and text
+    text_turns = [" ".join(text[i:j]) for i,j in turns_index]
 
     # now we roll
-    text_time_tuples = list(zip(text,bullets,mono_data_sliced))
+    text_time_tuples = list(zip(text_turns,
+                                bullets_turns,
+                                mono_data_sliced))
 
     # and filter out anything that isn't working
     def filter_result(result):
@@ -80,5 +111,10 @@ for i,j in tqdm(zip(in_files, in_audios), total=len(in_files)):
 import pandas as pd
 df = pd.DataFrame(results)
 df.columns=["text", "timestamp", "audio"]
-df.to_parquet(OUT_PATH)
+
+ds = Dataset.from_pandas(df)
+ds_shuffled = ds.shuffle(seed=42)
+ds_shuffled.save_to_disk("./data/SBCSAE_TURNS")
+
+
 
