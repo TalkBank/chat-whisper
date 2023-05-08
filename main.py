@@ -22,7 +22,7 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 # weights and biases
 hyperparametre_defaults = dict(
     lr = 3e-5,
-    batch_size = 16,
+    batch_size = 4,
     epochs = 32,
     data = "./data/SBCSAE_TURNS",
     model="openai/whisper-small"
@@ -90,10 +90,14 @@ def run_log_val():
 
     loss = out["loss"]
 
+    actual_out = tokenizer.batch_decode(torch.argmax(out["logits"], dim=2),
+                                        skip_special_tokens=True)[0]
+    expected_out = wandb.Html(text[0])
+    table = wandb.Table(columns=["output", "expected"])
+    table.add_data(actual_out, expected_out)
+
     wandb.log({
-        "val_sample": wandb.Html(tokenizer.batch_decode(torch.argmax(out["logits"], dim=2),
-                                                    skip_special_tokens=True)[0]),
-        "val_target": wandb.Html(text[0]),
+        "val_sample": table,
         "val_loss": loss.detach().cpu().item()
     })
 
