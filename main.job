@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# set echo for debug
-set -x
-
 # activate environment
 module load AI
 conda activate chat-whisper
