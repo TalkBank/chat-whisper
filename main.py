@@ -25,7 +25,7 @@ hyperparametre_defaults = dict(
     batch_size = 32,
     epochs = 32,
     data = "./data/SBCSAE_TURNS",
-    model="openai/whisper-large"
+    model="openai/whisper-large-v2"
 )
 
 # start wandb
