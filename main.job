@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# set echo for debug
+set -x
+
+# activate environment
+module load AI
+conda activate chat-whisper
+
+# go to dir
+pushd $PROJECT/chat-whisper
+python main.py
+popd
+

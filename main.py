@@ -21,11 +21,11 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 # weights and biases
 hyperparametre_defaults = dict(
-    lr = 1e-5,
-    batch_size = 2,
+    lr = 3e-5,
+    batch_size = 32,
     epochs = 32,
     data = "./data/SBCSAE_TURNS",
-    model="openai/whisper-tiny"
+    model="openai/whisper-large"
 )
 
 # start wandb
