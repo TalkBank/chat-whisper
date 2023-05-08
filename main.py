@@ -23,8 +23,8 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 hyperparametre_defaults = dict(
     lr = 1e-5,
     batch_size = 2,
-    epochs = 64,
-    data = "./data/SBCSAE",
+    epochs = 32,
+    data = "./data/SBCSAE_TURNS",
     model="openai/whisper-tiny"
 )
 
@@ -40,6 +40,7 @@ BATCH_SIZE = config.batch_size
 LR = config.lr
 EPOCHS = config.epochs
 MODEL = config.model
+VAL_SAMPLES=BATCH_SIZE
 
 class ChatAudioData(Dataset):
 
@@ -56,13 +57,45 @@ class ChatAudioData(Dataset):
     def __len__(self):
         return len(self.raw_data)
 
+# dataset
 dataset = ChatAudioData(DATA)
-dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, collate_fn=lambda x:list(zip(*x)))
+train, val = torch.utils.data.random_split(
+    dataset, [len(dataset)-VAL_SAMPLES, VAL_SAMPLES],
+    generator=torch.Generator().manual_seed(1))
+
+# train val split
+dataloader = DataLoader(train, batch_size=BATCH_SIZE, collate_fn=lambda x:list(zip(*x)))
+val_data = next(iter(DataLoader(val, batch_size=VAL_SAMPLES, collate_fn=lambda x:list(zip(*x)))))
+
+# feature extractors
 processor = WhisperFeatureExtractor.from_pretrained(MODEL, language="English", task="transcribe")
 tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
+# model!
 model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}.en").to(DEVICE)
 optim = AdamW(model.parameters(), lr=LR)
+
+# function to run validation
+def run_log_val():
+    text, audio = val_data
+
+    # encode data
+    encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt")["input_features"].to(DEVICE)
+    encoded_text = tokenizer(text, return_tensors="pt", padding=True).to(DEVICE)
+
+    # pass through model
+    out = model(input_features = encoded_audio,
+                attention_mask = encoded_text["attention_mask"],
+                labels=encoded_text["input_ids"])
+
+    loss = out["loss"]
+
+    wandb.log({
+        "val_sample": wandb.Html(tokenizer.batch_decode(torch.argmax(out["logits"], dim=2),
+                                                    skip_special_tokens=True)[0]),
+        "val_target": wandb.Html(text[0]),
+        "val_loss": loss.detach().cpu().item()
+    })
 
 for _ in range(EPOCHS): 
     for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
@@ -89,11 +122,7 @@ for _ in range(EPOCHS):
 
         # log example
         if i % 100 == 0:
-            wandb.log({
-                "sample": wandb.Html(tokenizer.batch_decode(torch.argmax(out["logits"], dim=2), skip_special_tokens=True)[0]),
-                "target": wandb.Html(text[0])
-            })
-
+            run_log_val()
 
 # write model down
 print("Saving model...")
