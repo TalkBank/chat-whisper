@@ -85,7 +85,7 @@ def run_log_val():
 
     # pass through model
     out = model(input_features = encoded_audio,
-                attention_mask = encoded_text["attention_mask"],
+                # attention_mask = encoded_text["attention_mask"],
                 labels=encoded_text["input_ids"])
 
     loss = out["loss"]
@@ -107,7 +107,7 @@ for e in range(EPOCHS):
 
         # pass through model
         out = model(input_features = encoded_audio,
-                    attention_mask = encoded_text["attention_mask"],
+                    # attention_mask = encoded_text["attention_mask"],
                     labels=encoded_text["input_ids"])
 
         loss = out["loss"]
