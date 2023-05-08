@@ -22,10 +22,10 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 # weights and biases
 hyperparametre_defaults = dict(
     lr = 3e-5,
-    batch_size = 32,
+    batch_size = 16,
     epochs = 32,
     data = "./data/SBCSAE_TURNS",
-    model="openai/whisper-large-v2"
+    model="openai/whisper-medium"
 )
 
 # start wandb
@@ -85,7 +85,7 @@ def run_log_val():
 
     # pass through model
     out = model(input_features = encoded_audio,
-                # attention_mask = encoded_text["attention_mask"],
+                attention_mask = encoded_text["attention_mask"],
                 labels=encoded_text["input_ids"])
 
     loss = out["loss"]
@@ -107,7 +107,7 @@ for e in range(EPOCHS):
 
         # pass through model
         out = model(input_features = encoded_audio,
-                    # attention_mask = encoded_text["attention_mask"],
+                    attention_mask = encoded_text["attention_mask"],
                     labels=encoded_text["input_ids"])
 
         loss = out["loss"]
