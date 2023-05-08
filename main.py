@@ -72,7 +72,7 @@ processor = WhisperFeatureExtractor.from_pretrained(MODEL, language="English", t
 tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
 # model!
-model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}.en").to(DEVICE)
+model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}").to(DEVICE)
 optim = AdamW(model.parameters(), lr=LR)
 
 # function to run validation
