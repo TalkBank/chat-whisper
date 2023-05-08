@@ -97,9 +97,9 @@ def run_log_val():
         "val_loss": loss.detach().cpu().item()
     })
 
-for _ in range(EPOCHS): 
+for e in range(EPOCHS): 
+    print(f"Training epoch {e}...")
     for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
-        print(f"Training epoch {i}...")
 
         # encode data
         encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt")["input_features"].to(DEVICE)
