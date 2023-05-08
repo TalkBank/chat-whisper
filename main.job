@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Set huggingface cache
+export HF_DATASETS_CACHE="$PROJECT/huggingface/datasets"
+export TRANSFORMERS_CACHE="$PROJECT/huggingface/transformers"
+
 # activate environment
 module load AI
 conda activate chat-whisper
