@@ -132,7 +132,7 @@ for e in range(EPOCHS):
         })
 
         # log example
-        if i % 100 == 0:
+        if i % 500 == 0:
             run_log_val()
 
 # write model down
