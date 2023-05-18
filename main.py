@@ -81,8 +81,10 @@ def run_log_val():
 
     # encode data
     encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt",
-                              return_attention_mask=True, truncation=True).to(DEVICE)
-    encoded_text = tokenizer(text, return_tensors="pt", padding=True).to(DEVICE)
+                              return_attention_mask=True, truncation=True,
+                              max_length=30*16000).to(DEVICE)
+    encoded_text = tokenizer(text, return_tensors="pt", padding=True, truncation=True,
+                             max_length=448).to(DEVICE)
 
     # pass through model
     out = model(input_features = encoded_audio["input_features"],
@@ -108,8 +110,9 @@ for e in range(EPOCHS):
 
         # encode data
         encoded_audio = processor(audio, sampling_rate=16000, return_attention_mask=True, 
-                                  return_tensors="pt", truncation=True).to(DEVICE)
-        encoded_text = tokenizer(text, return_tensors="pt", padding=True).to(DEVICE)
+                                  return_tensors="pt", truncation=True, max_length=30*16000).to(DEVICE)
+        encoded_text = tokenizer(text, return_tensors="pt",max_length=448,
+                                 padding=True, truncation=True).to(DEVICE)
 
         # pass through model
         out = model(input_features = encoded_audio["input_features"],
