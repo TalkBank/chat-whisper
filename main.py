@@ -24,7 +24,7 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 hyperparametre_defaults = dict(
     lr = 3e-5,
     batch_size = 4,
-    epochs = 32,
+    epochs = 24,
     data = "./data/SBCSAE_TURNS",
     model="openai/whisper-small"
 )
