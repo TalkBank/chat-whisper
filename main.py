@@ -16,13 +16,14 @@ import os
 import wandb
 import pickle
 from tqdm import tqdm
+import random
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # weights and biases
 hyperparametre_defaults = dict(
     lr = 3e-5,
-    batch_size = 3,
+    batch_size = 4,
     epochs = 32,
     data = "./data/SBCSAE_TURNS",
     model="openai/whisper-small"
@@ -40,7 +41,7 @@ BATCH_SIZE = config.batch_size
 LR = config.lr
 EPOCHS = config.epochs
 MODEL = config.model
-VAL_SAMPLES = 2
+VAL_SAMPLES = 4
 
 class ChatAudioData(Dataset):
 
@@ -93,9 +94,10 @@ def run_log_val():
 
     loss = out["loss"]
 
+    id = random.randint(0,3)
     actual_out = tokenizer.batch_decode(torch.argmax(out["logits"], dim=2),
-                                        skip_special_tokens=True)[0]
-    expected_out = text[0]
+                                        skip_special_tokens=True)[id]
+    expected_out = text[id]
     table = wandb.Table(columns=["output", "expected"])
     table.add_data(actual_out, expected_out)
 
