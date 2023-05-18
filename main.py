@@ -22,7 +22,7 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 # weights and biases
 hyperparametre_defaults = dict(
     lr = 3e-5,
-    batch_size = 4,
+    batch_size = 3,
     epochs = 32,
     data = "./data/SBCSAE_TURNS",
     model="openai/whisper-small"
@@ -40,7 +40,7 @@ BATCH_SIZE = config.batch_size
 LR = config.lr
 EPOCHS = config.epochs
 MODEL = config.model
-VAL_SAMPLES=BATCH_SIZE
+VAL_SAMPLES = 2
 
 class ChatAudioData(Dataset):
 
@@ -137,6 +137,5 @@ print("Saving model...")
 os.mkdir(f"./models/{wandb.run.name}")
 model.save_pretrained(f"./models/{wandb.run.name}")
 tokenizer.save_pretrained(f"./models/{wandb.run.name}")
-procesor.save_pretrained(f"./models/{wandb.run.name}")
 
 
