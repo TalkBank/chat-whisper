@@ -80,12 +80,13 @@ def run_log_val():
     text, audio = val_data
 
     # encode data
-    encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt")["input_features"].to(DEVICE)
+    encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt",
+                              return_attention_mask=True, truncation=True).to(DEVICE)
     encoded_text = tokenizer(text, return_tensors="pt", padding=True).to(DEVICE)
 
     # pass through model
-    out = model(input_features = encoded_audio,
-                # attention_mask = encoded_text["attention_mask"],
+    out = model(input_features = encoded_audio["input_features"],
+                attention_mask = encoded_audio["attention_mask"],
                 labels=encoded_text["input_ids"])
 
     loss = out["loss"]
@@ -106,12 +107,13 @@ for e in range(EPOCHS):
     for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
 
         # encode data
-        encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt")["input_features"].to(DEVICE)
+        encoded_audio = processor(audio, sampling_rate=16000, return_attention_mask=True, 
+                                  return_tensors="pt", truncation=True).to(DEVICE)
         encoded_text = tokenizer(text, return_tensors="pt", padding=True).to(DEVICE)
 
         # pass through model
-        out = model(input_features = encoded_audio,
-                    # attention_mask = encoded_text["attention_mask"],
+        out = model(input_features = encoded_audio["input_features"],
+                    attention_mask = encoded_audio["attention_mask"],
                     labels=encoded_text["input_ids"])
 
         loss = out["loss"]
