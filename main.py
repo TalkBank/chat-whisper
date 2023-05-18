@@ -95,7 +95,7 @@ def run_log_val():
 
     actual_out = tokenizer.batch_decode(torch.argmax(out["logits"], dim=2),
                                         skip_special_tokens=True)[0]
-    expected_out = wandb.Html(text[0])
+    expected_out = text[0]
     table = wandb.Table(columns=["output", "expected"])
     table.add_data(actual_out, expected_out)
 
