@@ -40,7 +40,7 @@ BATCH_SIZE = config.batch_size
 LR = config.lr
 EPOCHS = config.epochs
 MODEL = config.model
-VAL_SAMPLES=BATCH_SIZE
+VAL_SAMPLES = 2
 
 class ChatAudioData(Dataset):
 
@@ -135,6 +135,5 @@ print("Saving model...")
 os.mkdir(f"./models/{wandb.run.name}")
 model.save_pretrained(f"./models/{wandb.run.name}")
 tokenizer.save_pretrained(f"./models/{wandb.run.name}")
-procesor.save_pretrained(f"./models/{wandb.run.name}")
 
 
