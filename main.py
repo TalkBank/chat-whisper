@@ -22,9 +22,9 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 # weights and biases
 hyperparametre_defaults = dict(
-    lr = 3e-5,
+    lr = 3e-6,
     batch_size = 4,
-    epochs = 24,
+    epochs = 16,
     data = "./data/SBCSAE_TURNS",
     model="openai/whisper-small"
 )
