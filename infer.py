@@ -8,7 +8,7 @@ from transformers import WhisperForConditionalGeneration, WhisperFeatureExtracto
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 # pretrained model path
-PRETRAINED = "./models/valiant-sponge-9"
+PRETRAINED = "./models/sage-plant-10"
 FILE = "./data/test.wav"
 
 @dataclass
@@ -75,7 +75,7 @@ class ASREngine(object):
                                                                  task="transcribe")
         self.tokenizer = WhisperTokenizer.from_pretrained(model, language="English",
                                                           task="transcribe")
-        self.model = WhisperForConditionalGeneration.from_pretrained(model)
+        self.model = WhisperForConditionalGeneration.from_pretrained(model).to(DEVICE)
 
         # save the target sample rate
         self.sample_rate = target_sample_rate
@@ -116,9 +116,15 @@ class ASREngine(object):
         # call!
         out = self.model.generate(input_features = encoded_audio["input_features"],
                                   attention_mask = encoded_audio["attention_mask"],
-                                  max_new_tokens = 100000).to(DEVICE)
+                                  max_new_tokens = 100000,
+                                  do_sample=True,
+                                  top_p=0.3).to(DEVICE)
         # decode
-        decoded = self.tokenizer.decode(out[0],
+        decoded = self.tokenizer.decode(out[0].cpu(),
                                         skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
-        return decoded
+        return decoded.strip()
+
+e = ASREngine(PRETRAINED)
+audio = e.load(FILE)
+e(audio.all())
