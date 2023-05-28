@@ -11,6 +11,9 @@ from datasets import load_dataset, Audio, Dataset
 # sample rate
 TARGET_SAMPLE_RATE=16000
 
+# how many utterances to group into 1
+GROUPS = 1
+
 # input dirs
 IN_DIR_TRANSCRIPTS = "./data/raw/SBCSAE/transcripts/"
 IN_DIR_AUDIO = "./data/raw/SBCSAE/audio"
@@ -84,7 +87,7 @@ def process_pair(f,w):
     mono_data = w["audio"]["array"]
     # and now, parcel out data alignments for each chunk
     # +500 smudge factor 
-    mono_data_sliced = [mono_data[(i[0]*TARGET_SAMPLE_RATE)//1000:(i[1]*TARGET_SAMPLE_RATE)//1000+1000]
+    mono_data_sliced = [mono_data[int(round((i[0]*TARGET_SAMPLE_RATE)/1000)):int(round((i[1]*TARGET_SAMPLE_RATE)/1000))]
                         if i else None for i in bullets_turns]
 
     # and text
@@ -100,8 +103,25 @@ def process_pair(f,w):
         return result[1] != None and result[2].shape[0] != 0
     text_time_tuples = list(filter(filter_result, text_time_tuples))
 
+    # group signal into groups
+    total = len(text_time_tuples)
+
+    # get final results
+    final_results = []
+    for i in range(0, total, GROUPS):
+        # cut into sections
+        text, bullets, data = zip(*text_time_tuples[i:i+GROUPS])
+        # combine text
+        text = " ".join(text).strip()
+        # get bullets
+        bullets = [bullets[0][0], bullets[-1][-1]]
+        # get data
+        data = np.concatenate(data)
+
+        final_results.append((text, bullets, data))
+
     # return!
-    return text_time_tuples
+    return final_results
 
 # process!
 results = []
@@ -114,7 +134,6 @@ df.columns=["text", "timestamp", "audio"]
 
 ds = Dataset.from_pandas(df)
 ds_shuffled = ds.shuffle(seed=42)
-ds_shuffled.save_to_disk("./data/SBCSAE_TURNS")
-
+ds_shuffled.save_to_disk("./data/SBCSAE_TURNS2")
 
 

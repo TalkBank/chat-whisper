@@ -142,5 +142,6 @@ print("Saving model...")
 os.mkdir(f"./models/{wandb.run.name}")
 model.save_pretrained(f"./models/{wandb.run.name}")
 tokenizer.save_pretrained(f"./models/{wandb.run.name}")
+processor.save_pretrained(f"./models/{wandb.run.name}")
 
 
