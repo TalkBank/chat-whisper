@@ -1,44 +1,124 @@
 from torchaudio import transforms as T
 from torchaudio import load
 
+from dataclasses import dataclass
+
 import torch
 from transformers import WhisperForConditionalGeneration, WhisperFeatureExtractor, WhisperTokenizer
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-TARGET_SAMPLE_RATE=16000
-
 # pretrained model path
 PRETRAINED = "./models/valiant-sponge-9"
+FILE = "./data/test.wav"
 
-# load pretrained models
-processor = WhisperFeatureExtractor.from_pretrained(PRETRAINED, language="English",
-                                                    task="transcribe")
-tokenizer = WhisperTokenizer.from_pretrained(PRETRAINED, language="English",
-                                             task="transcribe")
-model = WhisperForConditionalGeneration.from_pretrained(PRETRAINED)
+@dataclass
+class ASRAudioFile:
+    file : str
+    tensor : torch.Tensor
+    rate : int
 
-# function: load and resample audio
-f = "./data/test.wav"
-audio_arr, rate = load(f)
+    def chunk(self,begin_ms, end_ms):
+        """Get a chunk of the audio.
 
-# resample if needed
-if rate != TARGET_SAMPLE_RATE:
-    audio_arr = T.Resample(rate, TARGET_SAMPLE_RATE)(audio_arr)
+        Parameters
+        ----------
+        begin_ms : int
+            Milliseconds of the start of the slice.
+        end_ms : int
+            Milliseconds of the end of the slice.
 
-# transpose and mean
-resampled = torch.mean(audio_arr.transpose(0,1), dim=1)
+        Returns
+        -------
+        torch.Tensor
+            The returned chunk to supply to the ASR engine.
+        """
 
-# function: process audio file
-encoded_audio = processor(resampled, sampling_rate=TARGET_SAMPLE_RATE,
-                          return_attention_mask=True, return_tensors="pt",
-                          truncation=True, max_length=30*TARGET_SAMPLE_RATE).to(DEVICE)
+        data = self.tensor[int(round((begin_ms/1000)*self.rate)):
+                           int(round((end_ms/1000)*self.rate))]
+        assert len(data) <= self.rate*30, "This chunk is too long! <30 sec. for Whisper."
 
-# call!
-out = model.generate(input_features = encoded_audio["input_features"],
-                     attention_mask = encoded_audio["attention_mask"],
-                     max_new_tokens = 100000).to(DEVICE)
-# decode
-decoded = tokenizer.decode(out[0],
-                           skip_special_tokens=True, clean_up_tokenization_spaces=True)
+        return data
 
+    def all(self):
+        """Get the audio in its entirety
 
+        Notes
+        -----
+        like `chunk()` but all of the audio
+        """
+
+        assert len(self.tensor) <= self.rate*30, "This chunk is too long! <30 sec. for Whisper."
+
+        return self.tensor
+
+# inference engine
+class ASREngine(object):
+    """An ASR Engine
+
+    Parameters
+    ----------
+    model : str
+        The model path to load from.
+    target_sample_rate : optional, int
+        The sample rate to cast to. Defaults 16000 by Whisper.
+
+    Example
+    -------
+    >>> engine = ASREngine("./model/my_model")
+    >>> file = engine.load("./data/myfile.wav")
+    >>> engine(file.chunk(7000, 13000)) # transcribes 7000th ms to 13000th ms
+    """
+
+    def __init__(self, model, target_sample_rate=16000):
+        # load pretrained models
+        self.processor = WhisperFeatureExtractor.from_pretrained(model, language="English",
+                                                                 task="transcribe")
+        self.tokenizer = WhisperTokenizer.from_pretrained(model, language="English",
+                                                          task="transcribe")
+        self.model = WhisperForConditionalGeneration.from_pretrained(model)
+
+        # save the target sample rate
+        self.sample_rate = target_sample_rate
+
+    def load(self, f):
+        """Load an audio file for procesing.
+
+        Parameters
+        ----------
+        f : str
+            The audio .wav file name to process.
+
+        Returns
+        -------
+        ASRAudioFile
+            Return processed audio file.
+        """
+
+        # function: load and resample audio
+        audio_arr, rate = load(f)
+
+        # resample if needed
+        if rate != self.sample_rate:
+            audio_arr = T.Resample(rate, self.sample_rate)(audio_arr)
+
+        # transpose and mean
+        resampled = torch.mean(audio_arr.transpose(0,1), dim=1)
+
+        # and return the audio file
+        return ASRAudioFile(f, resampled, self.sample_rate)
+
+    def __call__(self, data:torch.Tensor):
+        # function: process audio file
+        encoded_audio = self.processor(data, sampling_rate=self.sample_rate,
+                                       return_attention_mask=True, return_tensors="pt",
+                                       truncation=True, max_length=30*self.sample_rate).to(DEVICE)
+
+        # call!
+        out = self.model.generate(input_features = encoded_audio["input_features"],
+                                  attention_mask = encoded_audio["attention_mask"],
+                                  max_new_tokens = 100000).to(DEVICE)
+        # decode
+        decoded = self.tokenizer.decode(out[0],
+                                        skip_special_tokens=True, clean_up_tokenization_spaces=True)
+
+        return decoded
