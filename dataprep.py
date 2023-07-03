@@ -134,7 +134,7 @@ def process_pair(f,w):
 # process!
 results = []
 for j in tqdm(in_audios):
-    path = i["audio"]["path"]
+    path = j["audio"]["path"]
     # calculate the transcript path
     i = os.path.join(IN_DIR_TRANSCRIPTS, f"{Path(path).stem}.flo.cex")
     # process!!
