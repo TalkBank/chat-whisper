@@ -4,6 +4,7 @@ import glob
 import pickle
 import numpy as np
 from tqdm import tqdm
+from pathlib import Path
 from scipy.io import wavfile
 
 from datasets import load_dataset, Audio, Dataset
@@ -15,8 +16,8 @@ TARGET_SAMPLE_RATE=16000
 GROUPS = 1
 
 # input dirs
-IN_DIR_TRANSCRIPTS = "./data/raw/SBCSAE/transcripts/"
-IN_DIR_AUDIO = "./data/raw/SBCSAE/audio"
+IN_DIR_TRANSCRIPTS = "./data/raw/CORALL/transcripts/"
+IN_DIR_AUDIO = "./data/raw/CORALL/audio"
 OUT_PATH = "./data/SBCSAE.parquet"
 
 # get the actual files
@@ -32,7 +33,7 @@ def process_pair(f,w):
     Parameters
     ----------
     f : str
-        The input .flo.cex to process (output of simply `flo "+t*" *`)
+        The input .flo.cex to process (output of `flo "+t*" "-t%mor" "-t%gra" "-t%wor"`)
     w : dict
         The dataset element to process, sample rate 16000
 
@@ -43,7 +44,14 @@ def process_pair(f,w):
     """
 
     with open(f, 'r') as df:
-        text = [i.strip() for i in df.readlines()]
+        text = df.read()
+        # we want to get rid of lines that are just \n\t texttextetxet
+        # because those are actually continuations of the previous line
+        text = text.replace("\n\t", " ")
+        # and now we get individual lines from the text for process
+        # being careful to remove everything that is just a blank line
+        # as an artifact from \n\t from above
+        text = [i.strip() for i in text.split("\n") if i.strip() != ""]
 
     # filter out lines that are comments
     text = list(filter(lambda x:x[0] != "%", text))
@@ -125,8 +133,13 @@ def process_pair(f,w):
 
 # process!
 results = []
-for i,j in tqdm(zip(in_files, in_audios), total=len(in_files)):
+for i in tqdm(in_audios):
+    # calculate the transcript path
+    j = os.path.join(IN_DIR_TRANSCRIPTS, f"{Path(i).stem}.flo.cex")
+    # process!!
     results += process_pair(i, j)
+    
+# for i,j in tqdm(zip(in_files, in_audios), total=len(in_files)):
 
 import pandas as pd
 df = pd.DataFrame(results)
@@ -134,6 +147,6 @@ df.columns=["text", "timestamp", "audio"]
 
 ds = Dataset.from_pandas(df)
 ds_shuffled = ds.shuffle(seed=42)
-ds_shuffled.save_to_disk("./data/SBCSAE_TURNS2")
+ds_shuffled.save_to_disk("./data/CORALL_TURNS")
 
 
