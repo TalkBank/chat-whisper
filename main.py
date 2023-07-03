@@ -25,7 +25,7 @@ hyperparametre_defaults = dict(
     lr = 3e-6,
     batch_size = 4,
     epochs = 4,
-    data = "./data/SBCSAE_TURNS2",
+    data = "./data/CORALL_TURNS",
     model="openai/whisper-small"
 )
 
