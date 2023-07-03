@@ -125,6 +125,6 @@ class ASREngine(object):
 
         return decoded.strip()
 
-e = ASREngine(PRETRAINED)
-audio = e.load(FILE)
-e(audio.all())
+# e = ASREngine(PRETRAINED)
+# audio = e.load(FILE)
+# e(audio.re())
