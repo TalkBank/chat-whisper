@@ -131,7 +131,7 @@ class ASREngine(object):
         # decoded = self.tokenizer.decode(out[0].cpu(),
         #                                 skip_special_tokens=True, clean_up_tokenization_spaces=True)
         
-        return self.pipe(data, batch_size=8)["text"].strip()
+        return self.pipe(data.cpu().numpy(), batch_size=8)["text"].strip()
 
 # e = ASREngine(PRETRAINED)
 # audio = e.load(FILE)
