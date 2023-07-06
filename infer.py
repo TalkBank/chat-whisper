@@ -10,8 +10,9 @@ from transformers import WhisperForConditionalGeneration, WhisperFeatureExtracto
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device('cpu')
 # pretrained model path
-PRETRAINED = "./models/sage-plant-10"
-FILE = "./data/test.wav"
+PRETRAINED = "./models/smart-river-11"
+# FILE = "./data/test.wav"
+FILE = "/Users/macw/mfa_data/input/Baycrest9336a.wav"
 
 @dataclass
 class ASRAudioFile:
@@ -48,8 +49,6 @@ class ASRAudioFile:
         -----
         like `chunk()` but all of the audio
         """
-
-        assert len(self.tensor) <= self.rate*30, "This chunk is too long! <30 sec. for Whisper."
 
         return self.tensor
 
@@ -133,6 +132,6 @@ class ASREngine(object):
         
         return self.pipe(data.cpu().numpy(), batch_size=8)["text"].strip()
 
-# e = ASREngine(PRETRAINED)
-# audio = e.load(FILE)
-# e(audio.re())
+e = ASREngine(PRETRAINED)
+audio = e.load(FILE)
+print(e(audio.all()))
