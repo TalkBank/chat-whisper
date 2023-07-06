@@ -1,12 +1,14 @@
 from torchaudio import transforms as T
 from torchaudio import load
 
+from transformers import pipeline
+
 from dataclasses import dataclass
 
 import torch
 from transformers import WhisperForConditionalGeneration, WhisperFeatureExtractor, WhisperTokenizer
 
-DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device('cpu')
 # pretrained model path
 PRETRAINED = "./models/sage-plant-10"
 FILE = "./data/test.wav"
@@ -71,11 +73,17 @@ class ASREngine(object):
 
     def __init__(self, model, target_sample_rate=16000):
         # load pretrained models
-        self.processor = WhisperFeatureExtractor.from_pretrained(model, language="English",
-                                                                 task="transcribe")
-        self.tokenizer = WhisperTokenizer.from_pretrained(model, language="English",
-                                                          task="transcribe")
-        self.model = WhisperForConditionalGeneration.from_pretrained(model).to(DEVICE)
+        # self.processor = WhisperFeatureExtractor.from_pretrained(model, language="English",
+        #                                                          task="transcribe")
+        # self.tokenizer = WhisperTokenizer.from_pretrained(model, language="English",
+        #                                                   task="transcribe")
+        # self.model = WhisperForConditionalGeneration.from_pretrained(model).to(DEVICE)
+        self.pipe = pipeline(
+            "automatic-speech-recognition",
+            model=model,
+            chunk_length_s=30,
+            device=DEVICE
+        )
 
         # save the target sample rate
         self.sample_rate = target_sample_rate
@@ -109,21 +117,21 @@ class ASREngine(object):
 
     def __call__(self, data:torch.Tensor):
         # function: process audio file
-        encoded_audio = self.processor(data, sampling_rate=self.sample_rate,
-                                       return_attention_mask=True, return_tensors="pt",
-                                       truncation=True, max_length=30*self.sample_rate).to(DEVICE)
+        # encoded_audio = self.processor(data, sampling_rate=self.sample_rate,
+        #                                return_attention_mask=True, return_tensors="pt",
+        #                                truncation=True, max_length=30*self.sample_rate).to(DEVICE)
 
-        # call!
-        out = self.model.generate(input_features = encoded_audio["input_features"],
-                                  attention_mask = encoded_audio["attention_mask"],
-                                  max_new_tokens = 100000,
-                                  do_sample=True,
-                                  top_p=0.3).to(DEVICE)
-        # decode
-        decoded = self.tokenizer.decode(out[0].cpu(),
-                                        skip_special_tokens=True, clean_up_tokenization_spaces=True)
-
-        return decoded.strip()
+        # # call!
+        # out = self.model.generate(input_features = encoded_audio["input_features"],
+        #                           attention_mask = encoded_audio["attention_mask"],
+        #                           max_new_tokens = 100000,
+        #                           do_sample=True,
+        #                           top_p=0.3).to(DEVICE)
+        # # decode
+        # decoded = self.tokenizer.decode(out[0].cpu(),
+        #                                 skip_special_tokens=True, clean_up_tokenization_spaces=True)
+        
+        return pipe(data, batch_size=8)["text"].strip()
 
 # e = ASREngine(PRETRAINED)
 # audio = e.load(FILE)
