@@ -12,7 +12,7 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device("mp
 # pretrained model path
 PRETRAINED = "./models/smart-river-11"
 # FILE = "./data/test.wav"
-FILE = "/Users/macw/mfa_data/input/Baycrest9336a.wav"
+FILE = "../talkbank-alignment/ted/output/MichelleObama_2009P.wav"
 
 @dataclass
 class ASRAudioFile:
@@ -38,7 +38,6 @@ class ASRAudioFile:
 
         data = self.tensor[int(round((begin_ms/1000)*self.rate)):
                            int(round((end_ms/1000)*self.rate))]
-        assert len(data) <= self.rate*30, "This chunk is too long! <30 sec. for Whisper."
 
         return data
 
@@ -81,7 +80,9 @@ class ASREngine(object):
             "automatic-speech-recognition",
             model=model,
             chunk_length_s=30,
-            device=DEVICE
+            stride_length_s=(5, 5),
+            device=DEVICE,
+            return_timestamps="word",
         )
 
         # save the target sample rate
@@ -130,8 +131,27 @@ class ASREngine(object):
         # decoded = self.tokenizer.decode(out[0].cpu(),
         #                                 skip_special_tokens=True, clean_up_tokenization_spaces=True)
         
-        return self.pipe(data.cpu().numpy(), batch_size=8)["text"].strip()
+        return self.pipe(data.cpu().numpy(),
+                         batch_size=8, 
+                         generate_kwargs = {"temperature": 0.5,
+                                            "repetition_penalty": 1.5})
 
-e = ASREngine(PRETRAINED)
-audio = e.load(FILE)
-print(e(audio.all()))
+# e = ASREngine(PRETRAINED)
+# audio = e.load(FILE)
+# raw = e(audio.all())
+
+
+# for i in raw["chunks"]:
+#     print(i["text"].strip(), i["timestamp"])
+
+# # raw["chunks"][3]
+
+
+# # import sounddevice as sd
+
+# # # raw["chunks"][69]
+
+# # sd.play(audio.chunk(794.04*1000, 801.0*1000), audio.rate)
+
+
+
