@@ -8,11 +8,13 @@ from dataclasses import dataclass
 import torch
 from transformers import WhisperForConditionalGeneration, WhisperFeatureExtractor, WhisperTokenizer
 
+from nltk import sent_tokenize
+
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device('cpu')
 # pretrained model path
 PRETRAINED = "./models/smart-river-11"
 # FILE = "./data/test.wav"
-FILE = "../talkbank-alignment/ted/output/MichelleObama_2009P.wav"
+FILE = "../talkbank-alignment/tmp/input/minga01a.wav"
 
 @dataclass
 class ASRAudioFile:
@@ -136,9 +138,30 @@ class ASREngine(object):
                          generate_kwargs = {"temperature": 0.5,
                                             "repetition_penalty": 1.5})
 
+def render_text(chunks):
+    for i, elem in enumerate(chunks):
+        timestamp = elem["timestamp"]
+        text = sent_tokenize(elem["text"])
+
+        chunk_text=f"Chunk {i}: ({timestamp[0]}, {timestamp[1]})\n"
+        transcript_text="\n".join([i.strip() for i in text])
+
+        yield chunk_text+transcript_text
+
 # e = ASREngine(PRETRAINED)
 # audio = e.load(FILE)
 # raw = e(audio.all())
+
+# parsed_text = "\n\n".join(render_text(raw["chunks"]))
+
+# with open("./minga01a.txt", 'w') as df:
+#     df.write(parsed_text)
+
+
+
+# import os
+# os.getcwd()
+
 
 
 # for i in raw["chunks"]:
