@@ -81,8 +81,8 @@ class ASREngine(object):
         self.pipe = pipeline(
             "automatic-speech-recognition",
             model=model,
-            chunk_length_s=30,
-            stride_length_s=(5, 5),
+            chunk_length_s=18,
+            stride_length_s=(3, 3),
             device=DEVICE,
             return_timestamps="word",
         )
@@ -133,48 +133,44 @@ class ASREngine(object):
         # decoded = self.tokenizer.decode(out[0].cpu(),
         #                                 skip_special_tokens=True, clean_up_tokenization_spaces=True)
         
-        return self.pipe(data.cpu().numpy(),
-                         batch_size=8, 
-                         generate_kwargs = {"temperature": 0.5,
-                                            "repetition_penalty": 1.5})
+        raw = self.pipe(data.cpu().numpy(),
+                        batch_size=8, 
+                        generate_kwargs = {"temperature": 0.5,
+                                           "repetition_penalty": 1.5})
 
-def render_text(chunks):
-    for i, elem in enumerate(chunks):
-        timestamp = elem["timestamp"]
-        text = sent_tokenize(elem["text"])
+        # create draft utterances
+        utt_drafts = []
+        max_chunk = len(raw["chunks"])
 
-        chunk_text=f"Chunk {i}: ({timestamp[0]}, {timestamp[1]})\n"
-        transcript_text="\n".join([i.strip() for i in text])
+        # group chunks together and create rough timestamps
+        for i in range(0, max_chunk-1):
+            # get the base text
+            chunk = sent_tokenize(raw["chunks"][i]["text"])
 
-        yield chunk_text+transcript_text
+            # there is space to go forward
+            if i < max_chunk-1:
+                chunk += [sent_tokenize(raw["chunks"][i+1]["text"])[0]]
+            if i > 0:
+                chunk += [sent_tokenize(raw["chunks"][i-1]["text"])[-1]]
 
-# e = ASREngine(PRETRAINED)
-# audio = e.load(FILE)
-# raw = e(audio.all())
+            # check the first utterance; there's a chance that its already in
+            # the previous utterance draft
+            if len(utt_drafts) > 0 and utt_drafts[-1]["text"] == chunk[0]:
+                chunk.pop(0)
 
-# parsed_text = "\n\n".join(render_text(raw["chunks"]))
+            # append to the list!
+            for c in chunk:
+                # some cleanup
+                c = c.strip()
+                # last commas are not allowed
+                if c[-1] == ",":
+                    c = c[:-1]
+                    c += '.'
+                utt_drafts.append({"text": c, "timestamp": raw["chunks"][i]["timestamp"]})
 
-# with open("./minga01a.txt", 'w') as df:
-#     df.write(parsed_text)
-
-
-
-# import os
-# os.getcwd()
-
-
-
-# for i in raw["chunks"]:
-#     print(i["text"].strip(), i["timestamp"])
-
-# # raw["chunks"][3]
-
-
-# # import sounddevice as sd
-
-# # # raw["chunks"][69]
-
-# # sd.play(audio.chunk(794.04*1000, 801.0*1000), audio.rate)
+        return utt_drafts
 
 
-
+e = ASREngine(PRETRAINED)
+audio = e.load(FILE)
+results = e(audio.all())
