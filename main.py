@@ -26,7 +26,7 @@ hyperparametre_defaults = dict(
     batch_size = 1,
     epochs = 5,
     data = "./data/CWR",
-    model="openai/whisper-base"
+    model="openai/whisper-medium"
 )
 
 # start wandb
