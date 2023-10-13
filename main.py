@@ -22,8 +22,8 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 
 # weights and biases
 hyperparametre_defaults = dict(
-    lr = 2e-6,
-    batch_size = 1,
+    lr = 3e-6,
+    batch_size = 2,
     epochs = 5,
     data = "./data/CWR",
     model="openai/whisper-base"
