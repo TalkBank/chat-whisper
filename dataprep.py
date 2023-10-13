@@ -9,6 +9,8 @@ from scipy.io import wavfile
 
 from datasets import load_dataset, Audio, Dataset
 
+from utils import clean
+
 # sample rate
 TARGET_SAMPLE_RATE=16000
 
@@ -16,9 +18,9 @@ TARGET_SAMPLE_RATE=16000
 GROUPS = 1
 
 # input dirs
-IN_DIR_TRANSCRIPTS = "./data/raw/CORALL/transcripts/"
-IN_DIR_AUDIO = "./data/raw/CORALL/audio"
-OUT_PATH = "./data/SBCSAE.parquet"
+IN_DIR_TRANSCRIPTS = "./data/raw/CWR/transcripts/"
+IN_DIR_AUDIO = "./data/raw/CWR/audio"
+OUT_PATH = "./data/CWR"
 
 # get the actual files
 in_files = sorted(glob.glob(os.path.join(IN_DIR_TRANSCRIPTS, "*.flo.cex")))
@@ -66,7 +68,7 @@ def process_pair(f,w):
     bullets = [(int(i.group(1)), int(i.group(2))) if i else None for i in bullets]
 
     # and then get rid of it from the bullets
-    text = [re.sub(r"\x15(\d+)_(\d+)\x15", "", i).strip() for i in text]
+    text = [clean(re.sub(r"\x15(\d+)_(\d+)\x15", "", i)).strip() for i in text]
 
     # seperate each turn out
     turns = []
@@ -146,8 +148,10 @@ import pandas as pd
 df = pd.DataFrame(results)
 df.columns=["text", "timestamp", "audio"]
 
+breakpoint()
+
 ds = Dataset.from_pandas(df)
 ds_shuffled = ds.shuffle(seed=42)
-ds_shuffled.save_to_disk("./data/CORALL_TURNS")
+ds_shuffled.save_to_disk(OUT_PATH)
 
 
