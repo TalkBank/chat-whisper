@@ -26,7 +26,7 @@ hyperparametre_defaults = dict(
     batch_size = 2,
     epochs = 5,
     data = "./data/CORALL_TURNS",
-    model="openai/whisper-large"
+    model="openai/whisper-large-v2"
 )
 
 # start wandb
