@@ -74,11 +74,15 @@ def process_pair(f,w):
     turns = []
     # prune one-off utterances
     turns_loc = list(filter(lambda x:x[1], enumerate(speakers)))
-    # prune same speakers (to extract turns)
-    # pruning rule: if the CURRENT speaker is the same as
-    # the PREVIOUS speaker; prune it
+    # group turns into groups of five 
+    # which is reughly a segment of Whisper audio
     turns_loc = [x for i, x in enumerate(turns_loc)
-                 if x[1] != turns_loc[i-1][1]]
+                 if i % 5 == 0] 
+    # uncomment this and comment line above if you want
+    # to do turn-based grouping instead (i.e. create
+    # a group on each speaker turn)
+    # turns_loc = [x for i, x in enumerate(turns_loc)
+    #              if x[1] != turns_loc[i-1][1]]
     # create one-off pairwise shifts; cut the first one
     # which starts at "blank" and begins at time 0
     turns_index = list(zip([None]+turns_loc, turns_loc))[1:]
