@@ -152,8 +152,6 @@ import pandas as pd
 df = pd.DataFrame(results)
 df.columns=["text", "timestamp", "audio"]
 
-breakpoint()
-
 ds = Dataset.from_pandas(df)
 ds_shuffled = ds.shuffle(seed=42)
 ds_shuffled.save_to_disk(OUT_PATH)
