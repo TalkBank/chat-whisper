@@ -76,7 +76,7 @@ tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="tr
 model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}").to(DEVICE)
 
 # train only the decoder
-optim = AdamW(model.decoder.parameters(), lr=LR)
+optim = AdamW(model.model.decoder.parameters(), lr=LR)
 
 # function to run validation
 def run_log_val():
