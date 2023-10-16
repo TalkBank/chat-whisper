@@ -1,5 +1,6 @@
 # ML
 from transformers import WhisperFeatureExtractor, WhisperTokenizer, WhisperForConditionalGeneration
+from peft import LoraConfig, get_peft_model
 from torch.utils.data import Dataset, DataLoader
 # torch specifically
 import torch
@@ -26,7 +27,10 @@ hyperparametre_defaults = dict(
     batch_size = 4,
     epochs = 10,
     data = "./data/CWR",
-    model="openai/whisper-base"
+    model="openai/whisper-large-v2",
+    r=8,
+    lora_alpha=16,
+    lora_dropout=0.1
 )
 
 # start wandb
@@ -42,6 +46,16 @@ LR = config.lr
 EPOCHS = config.epochs
 MODEL = config.model
 VAL_SAMPLES = 4
+
+lora = LoraConfig(
+    r=config.r,
+    lora_alpha=config.lora_alpha,
+    target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
+    lora_dropout=config.lora_dropout,
+    bias="none",
+    inference_mode=False,
+    modules_to_save=["encoder", "decoder"],
+)
 
 class ChatAudioData(Dataset):
 
@@ -73,7 +87,8 @@ processor = WhisperFeatureExtractor.from_pretrained(MODEL, language="English", t
 tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
 # model!
-model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}").to(DEVICE)
+base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+model = get_peft_model(base, lora).to(DEVICE)
 
 # train only the decoder
 optim = AdamW(model.model.decoder.parameters(), lr=LR)
@@ -142,7 +157,7 @@ for e in range(EPOCHS):
 # write model down
 print("Saving model...")
 os.mkdir(f"./models/{wandb.run.name}")
-model.save_pretrained(f"./models/{wandb.run.name}")
+model.merge_and_unload().save_pretrained(f"./models/{wandb.run.name}")
 tokenizer.save_pretrained(f"./models/{wandb.run.name}")
 processor.save_pretrained(f"./models/{wandb.run.name}")
 

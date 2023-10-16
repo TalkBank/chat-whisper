@@ -22,10 +22,11 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 # PYTORCH_ENABLE_MPS_FALLBACK=1
 # pretrained model path
 # PRETRAINED = "openai/whisper-small"
-PRETRAINED = "./models/ethereal-bee-20"
+PRETRAINED = "./models/laced-violet-28"
+# PRETRAINED = "openai/whisper-large-v2"
 # FILE = "./data/test.wav"
-# FILE = "../talkbank-alignment/testing_playground_2/input/test.wav"
-FILE = "../talkbank-alignment/broken2/input/53.wav"
+FILE = "../talkbank-alignment/testing_playground_2/input/test.wav"
+# FILE = "../talkbank-alignment/broken2/input/53.wav"
 
 @dataclass
 class ASRAudioFile:
@@ -168,7 +169,7 @@ class ASREngine(object):
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
                           generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,
-                                             "repetition_penalty": 1.01
+                                             "repetition_penalty": 1.3
                                              # "do_sample": True,
                                              # "temperature": 0.1
                                              # })
@@ -248,9 +249,10 @@ class ASREngine(object):
 
 # raw_dia[:1000]
 
-# e = ASREngine(PRETRAINED, "english")
-# audio, segments = e.load(FILE, 1)
-# result = e(audio.all(), segments)
+e = ASREngine(PRETRAINED, "english")
+audio, segments = e.load(FILE, 1)
+result = e(audio.all(), segments)
+result
 # result
 # # words = raw["chunks"]
 
