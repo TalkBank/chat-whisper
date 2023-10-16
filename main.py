@@ -91,7 +91,7 @@ base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
 model = get_peft_model(base, lora).to(DEVICE)
 
 # train only the decoder
-optim = AdamW(model.base_model.model.decoder.parameters(), lr=LR)
+optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
 
 # function to run validation
 def run_log_val():
