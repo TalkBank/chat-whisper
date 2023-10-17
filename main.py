@@ -27,8 +27,8 @@ hyperparametre_defaults = dict(
     batch_size = 1,
     epochs = 5,
     data = "./data/CWR",
-    model="openai/whisper-large-v2",
-    r=2,
+    model="openai/whisper-medium",
+    r=8,
     lora_alpha=16,
     lora_dropout=0.1
 )
