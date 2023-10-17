@@ -5,6 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 # torch specifically
 import torch
 from torch.optim import AdamW
+from accelerate import Accelerator
 
 # dataset utils
 from datasets import load_from_disk
@@ -19,14 +20,16 @@ import pickle
 from tqdm import tqdm
 import random
 
-DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+accelerator = Accelerator()
+DEVICE = accelerator.device
+
 
 # weights and biases
 hyperparametre_defaults = dict(
     lr = 3e-6,
     batch_size = 1,
     epochs = 5,
-    data = "./data/CWR",
+    data = "./data/SBCSAE_TURNS2",
     model="openai/whisper-medium",
     r=4,
     lora_alpha=32,
@@ -88,10 +91,13 @@ tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="tr
 
 # model!
 base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
-model = get_peft_model(base, lora).to(DEVICE)
+model = get_peft_model(base, lora)
 
 # train only the decoder
 optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
+
+# and 
+model, optim, dataloader, val_data = accelerator.prepare(model, optim, dataloader, val_data)
 
 # function to run validation
 def run_log_val():
@@ -109,10 +115,11 @@ def run_log_val():
                 attention_mask = encoded_audio["attention_mask"],
                 labels=encoded_text["input_ids"])
 
-    loss = out["loss"]
+    loss = accelerator.gather(out["loss"])
+    logits = accelerator.gather(out["logits"])
 
     id = random.randint(0,3)
-    actual_out = tokenizer.batch_decode(torch.argmax(out["logits"], dim=2),
+    actual_out = tokenizer.batch_decode(torch.argmax(logits, dim=2),
                                         skip_special_tokens=True)[id]
     expected_out = text[id]
     table = wandb.Table(columns=["output", "expected"])
@@ -120,11 +127,11 @@ def run_log_val():
 
     wandb.log({
         "val_sample": table,
-        "val_loss": loss.detach().cpu().item()
+        "val_loss": loss.item()
     })
 
 for e in range(EPOCHS): 
-    print(f"Training epoch {e}...")
+    accelerator.print(f"Training epoch {e}...")
     for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
 
         # encode data
@@ -141,13 +148,13 @@ for e in range(EPOCHS):
         loss = out["loss"]
 
         # optimization step
-        loss.backward()
+        accelerator.backward(loss)
         optim.step()
         optim.zero_grad()
 
         # logging
         wandb.log({
-            "train_loss": loss.detach().cpu().item()
+            "train_loss": accelerator.gather(loss).item()
         })
 
         # log example
@@ -155,9 +162,10 @@ for e in range(EPOCHS):
             run_log_val()
 
 # write model down
-print("Saving model...")
+accelerator.print("Saving model...")
+accelerator.wait_for_everyone()
 os.mkdir(f"./models/{wandb.run.name}")
-model.merge_and_unload().save_pretrained(f"./models/{wandb.run.name}")
+accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb.run.name}")
 tokenizer.save_pretrained(f"./models/{wandb.run.name}")
 processor.save_pretrained(f"./models/{wandb.run.name}")
 
