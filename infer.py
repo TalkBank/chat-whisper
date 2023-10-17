@@ -95,7 +95,9 @@ class ASREngine(object):
         processor = WhisperProcessor.from_pretrained(model)
 
         # force decoder IDs to create language
-        self.__decoder_ids = processor.get_decoder_prompt_ids(language=language, task="transcribe")
+        self.__decoder_ids = processor.get_decoder_prompt_ids(language=language,
+                                                              task="transcribe")
+        self.__prompt_ids = processor.get_prompt_ids("I am going to pause a lot, stutter, and say a lot of ums and uhs, and I will will will uh write them down. Um here we go.")
 
         # save the target sample rate
         self.sample_rate = target_sample_rate
@@ -168,12 +170,14 @@ class ASREngine(object):
 
         words = self.pipe(data.cpu().numpy(),
                           batch_size=8, 
-                          generate_kwargs = {"forced_decoder_ids": self.__decoder_ids,
-                                             "repetition_penalty": 1.3
+                          generate_kwargs = {
+                              "forced_decoder_ids": self.__decoder_ids,
+                              "prompt_ids": self.__prompt_ids,
+                              "repetition_penalty": 1.2
+                          })
                                              # "do_sample": True,
                                              # "temperature": 0.1
                                              # })
-                                             })
         # breakpoint()
                                              # "temperature": 0,
   #"temperature": 0.75,
