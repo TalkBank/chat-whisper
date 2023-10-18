@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 # torch specifically
 import torch
 from torch.optim import AdamW
-from accelerate import Accelerator
+from accelerate import Accelerator, find_executable_batch_size
 
 # dataset utils
 from datasets import load_from_disk
@@ -23,154 +23,161 @@ import random
 
 def execute():
 
-    accelerator = Accelerator()
-    DEVICE = accelerator.device
+    accelerator = Accelerator(log_with="wandb")
+    BATCH_SIZE_BASE = 1
+
+    @find_executable_batch_size(starting_batch_size=BATCH_SIZE_BASE)
+    def inner_func(batch_size):
+        DEVICE = accelerator.device
 
 
-    # weights and biases
-    hyperparametre_defaults = dict(
-        lr = 3e-6,
-        batch_size = 1,
-        epochs = 5,
-        data = "./data/CWR",
-        model="openai/whisper-medium",
-        r=4,
-        lora_alpha=32,
-        lora_dropout=0.1
-    )
+        # weights and biases
+        hyperparametre_defaults = dict(
+            lr = 3e-6,
+            batch_size = batch_size,
+            epochs = 5,
+            data = "./data/CWR",
+            model="openai/whisper-medium",
+            r=4,
+            lora_alpha=32,
+            lora_dropout=0.1
+        )
 
-    # start wandb
-    wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults, mode="disabled")
-    # wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
+        # start wandb
+        accelerator.init_trackers(project='chat-whisper',
+                                  entity='jemoka',
+                                  config=hyperparametre_defaults)
+        # wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
 
-    # get config
-    config = wandb.config
+        # get config
+        config = wandb.config
 
-    DATA = config.data
-    BATCH_SIZE = config.batch_size
-    LR = config.lr
-    EPOCHS = config.epochs
-    MODEL = config.model
-    VAL_SAMPLES = 4
+        DATA = config.data
+        BATCH_SIZE = config.batch_size
+        LR = config.lr
+        EPOCHS = config.epochs
+        MODEL = config.model
+        VAL_SAMPLES = 4
 
-    lora = LoraConfig(
-        r=config.r,
-        lora_alpha=config.lora_alpha,
-        target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
-        lora_dropout=config.lora_dropout,
-        bias="none",
-        inference_mode=False,
-        modules_to_save=["encoder", "decoder"],
-    )
+        lora = LoraConfig(
+            r=config.r,
+            lora_alpha=config.lora_alpha,
+            target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
+            lora_dropout=config.lora_dropout,
+            bias="none",
+            inference_mode=False,
+            modules_to_save=["encoder", "decoder"],
+        )
 
-    class ChatAudioData(Dataset):
+        class ChatAudioData(Dataset):
 
-        def __init__(self, datafile, sample_rate=44100):
-            # load raw data
-            self.raw_data = load_from_disk(datafile)
+            def __init__(self, datafile, sample_rate=44100):
+                # load raw data
+                self.raw_data = load_from_disk(datafile)
 
-        def __getitem__(self, indx):
-            # get sample
-            data = self.raw_data[indx]
+            def __getitem__(self, indx):
+                # get sample
+                data = self.raw_data[indx]
 
-            return data["text"], data["audio"]
+                return data["text"], data["audio"]
 
-        def __len__(self):
-            return len(self.raw_data)
+            def __len__(self):
+                return len(self.raw_data)
 
-    # dataset
-    dataset = ChatAudioData(DATA)
-    train, val = torch.utils.data.random_split(
-        dataset, [len(dataset)-VAL_SAMPLES, VAL_SAMPLES],
-        generator=torch.Generator().manual_seed(1))
+        # dataset
+        dataset = ChatAudioData(DATA)
+        train, val = torch.utils.data.random_split(
+            dataset, [len(dataset)-VAL_SAMPLES, VAL_SAMPLES],
+            generator=torch.Generator().manual_seed(1))
 
-    # train val split
-    dataloader = DataLoader(train, batch_size=BATCH_SIZE, collate_fn=lambda x:list(zip(*x)))
-    val_data = next(iter(DataLoader(val, batch_size=VAL_SAMPLES, collate_fn=lambda x:list(zip(*x)))))
+        # train val split
+        dataloader = DataLoader(train, batch_size=BATCH_SIZE, collate_fn=lambda x:list(zip(*x)))
+        val_data = next(iter(DataLoader(val, batch_size=VAL_SAMPLES, collate_fn=lambda x:list(zip(*x)))))
 
-    # feature extractors
-    processor = WhisperFeatureExtractor.from_pretrained(MODEL, language="English", task="transcribe")
-    tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
+        # feature extractors
+        processor = WhisperFeatureExtractor.from_pretrained(MODEL, language="English", task="transcribe")
+        tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
-    # model!
-    base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
-    model = get_peft_model(base, lora)
+        # model!
+        base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+        model = get_peft_model(base, lora)
 
-    # train only the decoder
-    optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
+        # train only the decoder
+        optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
 
-    # and 
-    model, optim, dataloader, val_data = accelerator.prepare(model, optim, dataloader, val_data)
+        # and 
+        model, optim, dataloader, val_data = accelerator.prepare(model, optim, dataloader, val_data)
 
-    # function to run validation
-    def run_log_val():
-        text, audio = val_data
-
-        # encode data
-        encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt",
-                                return_attention_mask=True, truncation=True,
-                                max_length=30*16000).to(DEVICE)
-        encoded_text = tokenizer(text, return_tensors="pt", padding=True, truncation=True,
-                                max_length=448).to(DEVICE)
-
-        # pass through model
-        out = model(input_features = encoded_audio["input_features"],
-                    attention_mask = encoded_audio["attention_mask"],
-                    labels=encoded_text["input_ids"])
-
-        loss = accelerator.gather(out["loss"])
-        logits = accelerator.gather(out["logits"])
-
-        id = random.randint(0,3)
-        actual_out = tokenizer.batch_decode(torch.argmax(logits, dim=2),
-                                            skip_special_tokens=True)[id]
-        expected_out = text[id]
-        table = wandb.Table(columns=["output", "expected"])
-        table.add_data(actual_out, expected_out)
-
-        wandb.log({
-            "val_sample": table,
-            "val_loss": loss.item()
-        })
-
-    for e in range(EPOCHS): 
-        accelerator.print(f"Training epoch {e}...")
-        for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
+        # function to run validation
+        def run_log_val():
+            text, audio = val_data
 
             # encode data
-            encoded_audio = processor(audio, sampling_rate=16000, return_attention_mask=True, 
-                                    return_tensors="pt", truncation=True, max_length=30*16000).to(DEVICE)
-            encoded_text = tokenizer(text, return_tensors="pt",max_length=448,
-                                    padding=True, truncation=True).to(DEVICE)
+            encoded_audio = processor(audio, sampling_rate=16000, return_tensors="pt",
+                                    return_attention_mask=True, truncation=True,
+                                    max_length=30*16000).to(DEVICE)
+            encoded_text = tokenizer(text, return_tensors="pt", padding=True, truncation=True,
+                                    max_length=448).to(DEVICE)
 
             # pass through model
             out = model(input_features = encoded_audio["input_features"],
                         attention_mask = encoded_audio["attention_mask"],
                         labels=encoded_text["input_ids"])
 
-            loss = out["loss"]
+            loss = accelerator.gather(out["loss"])
+            logits = accelerator.gather(out["logits"])
 
-            # optimization step
-            accelerator.backward(loss)
-            optim.step()
-            optim.zero_grad()
+            id = random.randint(0,3)
+            actual_out = tokenizer.batch_decode(torch.argmax(logits, dim=2),
+                                                skip_special_tokens=True)[id]
+            expected_out = text[id]
+            table = wandb.Table(columns=["output", "expected"])
+            table.add_data(actual_out, expected_out)
 
-            # logging
-            wandb.log({
-                "train_loss": accelerator.gather(loss).item()
+            accelerator.log({
+                "val_sample": table,
+                "val_loss": loss.item()
             })
 
-            # log example
-            if i % 500 == 0:
-                run_log_val()
+        for e in range(EPOCHS): 
+            accelerator.print(f"Training epoch {e}...")
+            for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
 
-    # write model down
-    accelerator.print("Saving model...")
-    accelerator.wait_for_everyone()
-    os.mkdir(f"./models/{wandb.run.name}")
-    accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb.run.name}")
-    tokenizer.save_pretrained(f"./models/{wandb.run.name}")
-    processor.save_pretrained(f"./models/{wandb.run.name}")
+                # encode data
+                encoded_audio = processor(audio, sampling_rate=16000, return_attention_mask=True, 
+                                        return_tensors="pt", truncation=True, max_length=30*16000).to(DEVICE)
+                encoded_text = tokenizer(text, return_tensors="pt",max_length=448,
+                                        padding=True, truncation=True).to(DEVICE)
+
+                # pass through model
+                out = model(input_features = encoded_audio["input_features"],
+                            attention_mask = encoded_audio["attention_mask"],
+                            labels=encoded_text["input_ids"])
+
+                loss = out["loss"]
+
+                # optimization step
+                accelerator.backward(loss)
+                optim.step()
+                optim.zero_grad()
+
+                # logging
+                accelerator.log({
+                    "train_loss": accelerator.gather(loss).item()
+                })
+
+                # log example
+                if i % 500 == 0:
+                    run_log_val()
+
+        # write model down
+        accelerator.end_training()
+        accelerator.print("Saving model...")
+        accelerator.wait_for_everyone()
+        os.mkdir(f"./models/{wandb.run.name}")
+        accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb.run.name}")
+        tokenizer.save_pretrained(f"./models/{wandb.run.name}")
+        processor.save_pretrained(f"./models/{wandb.run.name}")
 
 
 if __name__ == "__main__":
