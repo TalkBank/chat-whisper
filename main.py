@@ -32,7 +32,7 @@ def execute():
         lr = 3e-6,
         batch_size = 1,
         epochs = 5,
-        data = "./data/SBCSAE_TURNS2",
+        data = "./data/CWR",
         model="openai/whisper-medium",
         r=4,
         lora_alpha=32,
