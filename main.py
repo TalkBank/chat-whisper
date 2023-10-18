@@ -32,7 +32,7 @@ def execute():
 
 
         # weights and biases
-        hyperparametre_defaults = dict(
+        config = dict(
             lr = 3e-6,
             batch_size = batch_size,
             epochs = 5,
@@ -46,12 +46,10 @@ def execute():
         # start wandb
         accelerator.init_trackers(project_name='chat-whisper',
                                   init_kwargs={"wandb": {"entity": "jemoka"}},
-                                  config=hyperparametre_defaults)
+                                  config=config)
         # wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
 
         # get config
-        config = wandb.config
-
         DATA = config.data
         BATCH_SIZE = config.batch_size
         LR = config.lr
