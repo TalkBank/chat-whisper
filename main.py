@@ -36,16 +36,16 @@ def execute():
             lr = 3e-6,
             batch_size = batch_size,
             epochs = 5,
-            data = "./data/CWR",
-            model="openai/whisper-medium",
+            data = "./data/SBCSAE_TURNS2",
+            model="openai/whisper-large-v2",
             r=4,
             lora_alpha=32,
             lora_dropout=0.1
         )
 
         # start wandb
-        accelerator.init_trackers(project='chat-whisper',
-                                  entity='jemoka',
+        accelerator.init_trackers(project_name='chat-whisper',
+                                  init_kwargs={"wandb": {"entity": "jemoka"}},
                                   config=hyperparametre_defaults)
         # wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
 
@@ -178,6 +178,8 @@ def execute():
         accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb.run.name}")
         tokenizer.save_pretrained(f"./models/{wandb.run.name}")
         processor.save_pretrained(f"./models/{wandb.run.name}")
+
+    inner_func()
 
 
 if __name__ == "__main__":
