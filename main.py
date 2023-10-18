@@ -24,7 +24,7 @@ import random
 def execute():
 
     accelerator = Accelerator(log_with="wandb")
-    BATCH_SIZE_BASE = 1
+    BATCH_SIZE_BASE = 4
 
     @find_executable_batch_size(starting_batch_size=BATCH_SIZE_BASE)
     def inner_func(batch_size):

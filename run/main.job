@@ -10,6 +10,6 @@ conda activate chat-whisper
 
 # go to dir
 pushd $PROJECT/chat-whisper
-python main.py
+accelerate launch --multi_gpu --mixed_precision=fp16 --num_processes=2 main.py
 popd
 
