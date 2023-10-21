@@ -38,7 +38,7 @@ def execute():
             batch_size = batch_size,
             epochs = 5,
             data = "./data/CWR",
-            model="openai/whisper-medium",
+            model="openai/whisper-large-v2",
         )
 
         # start wandb
