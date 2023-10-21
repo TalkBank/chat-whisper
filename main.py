@@ -85,7 +85,7 @@ def execute():
         tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
         # model!
-        base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+        model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
         model.train()
 
         # train only the decoder
