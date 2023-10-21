@@ -32,11 +32,11 @@ def execute():
     # weights and biases
     config = dict(
         lr = 3e-6,
-        batch_size = 1,
+        batch_size = 2,
         # epochs = 5,
         epochs = 0,
         data = "./data/CWR",
-        model="openai/whisper-large-v2",
+        model="openai/whisper-medium",
     )
 
     # start wandb
