@@ -48,8 +48,7 @@ def execute():
                               init_kwargs={"wandb": {"entity": "jemoka"}},
                               config=config)
 
-    peft_config = LoraConfig(task_type=TaskType.SEQ_2_SEQ_LM,
-                             inference_mode=False,
+    peft_config = LoraConfig(inference_mode=False,
                              r=config["r"],
                              target_modules=config["lora_target"],
                              lora_alpha=config["lora_alpha"],
