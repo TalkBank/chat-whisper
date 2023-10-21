@@ -33,8 +33,8 @@ def execute():
     config = dict(
         lr = 3e-6,
         batch_size = 2,
-        epochs = 5,
-        # epochs = 0,
+        # epochs = 5,
+        epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-medium",
     )
