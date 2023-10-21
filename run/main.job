@@ -10,6 +10,6 @@ conda activate chat-whisper
 
 # go to dir
 pushd $PROJECT/chat-whisper
-accelerate launch --config_file ./run/config.yaml main.py --mixed_precision fp16
+accelerate launch --config_file ./run/config.yaml main.py
 popd
 
