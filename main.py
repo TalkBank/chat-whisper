@@ -50,12 +50,12 @@ def execute():
         # wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
 
         # get config
-        DATA = config.data
-        BATCH_SIZE = config.batch_size
-        LR = config.lr
-        EPOCHS = config.epochs
-        MODEL = config.model
-        VAL_SAMPLES = 4
+        DATA = config["data"]
+        BATCH_SIZE = config["batch_size"]
+        LR = config["lr"]
+        EPOCHS = config["epochs"]
+        MODEL = config["model"]
+        VAL_SAMPLES = BATCH_SIZE
 
         lora = LoraConfig(
             r=config.r,
