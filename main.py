@@ -25,8 +25,7 @@ from deepspeed.accelerator import get_accelerator
 
 def execute():
 
-    # accelerator = Accelerator(log_with="wandb")
-    accelerator = Accelerator()
+    accelerator = Accelerator(log_with="wandb")
     DEVICE = accelerator.device
 
     # weights and biases
