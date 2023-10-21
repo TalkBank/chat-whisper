@@ -61,7 +61,7 @@ def execute():
         lora = LoraConfig(
             r=config["r"],
             lora_alpha=config["lora_alpha"],
-            target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
+            target_modules=["q_proj", "v_proj"],
             lora_dropout=config["lora_dropout"],
             bias="none",
             inference_mode=False,
