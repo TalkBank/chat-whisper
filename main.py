@@ -36,8 +36,8 @@ def execute():
             lr = 3e-6,
             batch_size = batch_size,
             epochs = 5,
-            data = "./data/SBCSAE_TURNS2",
-            model="openai/whisper-large-v2",
+            data = "./data/CWR",
+            model="openai/whisper-medium",
             r=4,
             lora_alpha=32,
             lora_dropout=0.1
