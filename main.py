@@ -1,6 +1,6 @@
 # ML
 from transformers import WhisperFeatureExtractor, WhisperTokenizer, WhisperForConditionalGeneration
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, get_peft_model, TaskType
 from torch.utils.data import Dataset, DataLoader
 # torch specifically
 import torch
