@@ -23,7 +23,8 @@ import random
 
 def execute():
 
-    accelerator = Accelerator(log_with="wandb")
+    # accelerator = Accelerator(log_with="wandb")
+    accelerator = Accelerator()
     BATCH_SIZE_BASE = 4
 
     @find_executable_batch_size(starting_batch_size=BATCH_SIZE_BASE)
@@ -142,32 +143,33 @@ def execute():
             accelerator.print(f"Training epoch {e}...")
             for i, (text, audio) in enumerate(tqdm(iter(dataloader), total=len(dataloader))):
 
-                # encode data
-                encoded_audio = processor(audio, sampling_rate=16000, return_attention_mask=True, 
-                                        return_tensors="pt", truncation=True, max_length=30*16000).to(DEVICE)
-                encoded_text = tokenizer(text, return_tensors="pt",max_length=448,
-                                        padding=True, truncation=True).to(DEVICE)
+                with accelerator.autocast():
+                    # encode data
+                    encoded_audio = processor(audio, sampling_rate=16000, return_attention_mask=True, 
+                                            return_tensors="pt", truncation=True, max_length=30*16000).to(DEVICE)
+                    encoded_text = tokenizer(text, return_tensors="pt",max_length=448,
+                                            padding=True, truncation=True).to(DEVICE)
 
-                # pass through model
-                out = model(input_features = encoded_audio["input_features"],
-                            attention_mask = encoded_audio["attention_mask"],
-                            labels=encoded_text["input_ids"])
+                    # pass through model
+                    out = model(input_features = encoded_audio["input_features"],
+                                attention_mask = encoded_audio["attention_mask"],
+                                labels=encoded_text["input_ids"])
 
-                loss = out["loss"]
+                    loss = out["loss"]
 
-                # optimization step
-                accelerator.backward(loss)
-                optim.step()
-                optim.zero_grad()
+                    # optimization step
+                    accelerator.backward(loss)
+                    optim.step()
+                    optim.zero_grad()
 
-                # logging
-                accelerator.log({
-                    "train_loss": accelerator.gather(loss).item()
-                })
+                    # logging
+                    accelerator.log({
+                        "train_loss": accelerator.gather(loss).item()
+                    })
 
-                # log example
-                if i % 500 == 0:
-                    run_log_val()
+                    # log example
+                    if i % 500 == 0:
+                        run_log_val()
 
         # write model down
         accelerator.end_training()
