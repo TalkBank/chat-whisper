@@ -58,10 +58,10 @@ def execute():
         VAL_SAMPLES = BATCH_SIZE
 
         lora = LoraConfig(
-            r=config.r,
-            lora_alpha=config.lora_alpha,
+            r=config["r"],
+            lora_alpha=config["lora_alpha"],
             target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
-            lora_dropout=config.lora_dropout,
+            lora_dropout=config["lora_dropout"],
             bias="none",
             inference_mode=False,
             modules_to_save=["encoder", "decoder"],
