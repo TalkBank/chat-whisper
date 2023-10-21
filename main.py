@@ -25,7 +25,7 @@ def execute():
 
     # accelerator = Accelerator(log_with="wandb")
     accelerator = Accelerator()
-    BATCH_SIZE_BASE = 4
+    BATCH_SIZE_BASE = 1
 
     @find_executable_batch_size(starting_batch_size=BATCH_SIZE_BASE)
     def inner_func(batch_size):
@@ -39,9 +39,6 @@ def execute():
             epochs = 5,
             data = "./data/CWR",
             model="openai/whisper-small",
-            r=8,
-            lora_alpha=32,
-            lora_dropout=0.1
         )
 
         # start wandb
@@ -57,16 +54,6 @@ def execute():
         EPOCHS = config["epochs"]
         MODEL = config["model"]
         VAL_SAMPLES = BATCH_SIZE
-
-        lora = LoraConfig(
-            r=config["r"],
-            lora_alpha=config["lora_alpha"],
-            target_modules=["q_proj", "v_proj"],
-            lora_dropout=config["lora_dropout"],
-            bias="none",
-            inference_mode=False,
-            modules_to_save=["encoder", "decoder"],
-        )
 
         class ChatAudioData(Dataset):
 
@@ -99,11 +86,9 @@ def execute():
 
         # model!
         base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
-        model = get_peft_model(base, lora)
         model.train()
 
         # train only the decoder
-        # optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
         optim = AdamW(model.parameters(), lr=LR)
 
         # and 
@@ -179,7 +164,7 @@ def execute():
         accelerator.wait_for_everyone()
         wandb_t = accelerator.get_tracker("wandb")
         os.mkdir(f"./models/{wandb_t.run.name}")
-        accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb_t.run.name}")
+        accelerator.unwrap_model(model).save_pretrained(f"./models/{wandb_t.run.name}")
         tokenizer.save_pretrained(f"./models/{wandb_t.run.name}")
         processor.save_pretrained(f"./models/{wandb_t.run.name}")
 
