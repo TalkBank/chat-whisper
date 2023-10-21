@@ -137,7 +137,7 @@ def execute():
 
             accelerator.log({
                 "val_sample": table,
-                "val_loss": loss.item()
+                "val_loss": torch.mean(loss).item()
             })
 
         for e in range(EPOCHS): 
@@ -162,9 +162,12 @@ def execute():
                 optim.step()
                 optim.zero_grad()
 
+                loss = torch.mean(accelerator.gather(loss))
+
+                print(loss)
                 # logging
                 accelerator.log({
-                    "train_loss": accelerator.gather(torch.mean(loss)).item()
+                    "train_loss": loss.item()
                 })
 
                 # log example
