@@ -38,7 +38,7 @@ def execute():
             batch_size = batch_size,
             epochs = 5,
             data = "./data/CWR",
-            model="openai/whisper-small",
+            model="openai/whisper-medium",
             r=4,
             lora_alpha=32,
             lora_dropout=0.1
