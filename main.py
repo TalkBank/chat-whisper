@@ -113,7 +113,7 @@ def execute():
             loss = accelerator.gather(torch.mean(out["loss"]))
             logits = accelerator.gather(out["logits"])
 
-            id = random.randint(0,3)
+            id = random.randint(0,BATCH_SIZE-1)
             actual_out = tokenizer.batch_decode(torch.argmax(logits, dim=2),
                                                 skip_special_tokens=True)[id]
             expected_out = text[id]
