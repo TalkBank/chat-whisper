@@ -99,6 +99,7 @@ def execute():
 
         # model!
         model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+        model.train()
         # model = get_peft_model(base, lora)
 
         # train only the decoder
