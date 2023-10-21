@@ -39,7 +39,7 @@ def execute():
             epochs = 5,
             data = "./data/CWR",
             model="openai/whisper-small",
-            r=4,
+            r=8,
             lora_alpha=32,
             lora_dropout=0.1
         )
@@ -100,9 +100,11 @@ def execute():
         # model!
         base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
         model = get_peft_model(base, lora)
+        model.train()
 
         # train only the decoder
-        optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
+        # optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
+        optim = AdamW(model.parameters(), lr=LR)
 
         # and 
         model, optim, dataloader, val_data = accelerator.prepare(model, optim, dataloader, val_data)
