@@ -36,7 +36,7 @@ def execute():
         # epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-large-v2",
-        lora_alpha = 32,
+        lora_alpha = 16,
         lora_dropout = 0.1,
         lora_target = ["q_proj", "v_proj", "out_proj"],
         r = 8,
