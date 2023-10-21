@@ -102,7 +102,7 @@ def execute():
 
         # train only the decoder
         # optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
-        optim = AdamW(model.decoder.parameters(), lr=LR)
+        optim = AdamW(model.parameters(), lr=LR)
 
         # and 
         model, optim, dataloader, val_data = accelerator.prepare(model, optim, dataloader, val_data)
