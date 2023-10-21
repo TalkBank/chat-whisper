@@ -25,15 +25,16 @@ from deepspeed.accelerator import get_accelerator
 
 def execute():
 
-    # accelerator = Accelerator(log_with="wandb")
-    accelerator = Accelerator()
+    accelerator = Accelerator(log_with="wandb")
+    # accelerator = Accelerator()
     DEVICE = accelerator.device
 
     # weights and biases
     config = dict(
         lr = 3e-6,
         batch_size = 1,
-        epochs = 5,
+        # epochs = 5,
+        epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-large-v2",
     )
