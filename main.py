@@ -37,7 +37,7 @@ def execute():
             batch_size = batch_size,
             epochs = 5,
             data = "./data/CWR",
-            model="openai/whisper-medium",
+            model="openai/whisper-small",
             r=4,
             lora_alpha=32,
             lora_dropout=0.1
@@ -57,15 +57,15 @@ def execute():
         MODEL = config["model"]
         VAL_SAMPLES = BATCH_SIZE
 
-        lora = LoraConfig(
-            r=config["r"],
-            lora_alpha=config["lora_alpha"],
-            target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
-            lora_dropout=config["lora_dropout"],
-            bias="none",
-            inference_mode=False,
-            modules_to_save=["encoder", "decoder"],
-        )
+        # lora = LoraConfig(
+        #     r=config["r"],
+        #     lora_alpha=config["lora_alpha"],
+        #     target_modules=["q_proj", "v_proj", "out_proj", "fc1", "fc2"],
+        #     lora_dropout=config["lora_dropout"],
+        #     bias="none",
+        #     inference_mode=False,
+        #     modules_to_save=["encoder", "decoder"],
+        # )
 
         class ChatAudioData(Dataset):
 
@@ -97,11 +97,12 @@ def execute():
         tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
         # model!
-        base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
-        model = get_peft_model(base, lora)
+        model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+        # model = get_peft_model(base, lora)
 
         # train only the decoder
-        optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
+        # optim = AdamW(model.base_model.model.model.decoder.parameters(), lr=LR)
+        optim = AdamW(model.decoder.parameters(), lr=LR)
 
         # and 
         model, optim, dataloader, val_data = accelerator.prepare(model, optim, dataloader, val_data)
@@ -173,7 +174,8 @@ def execute():
         accelerator.print("Saving model...")
         accelerator.wait_for_everyone()
         os.mkdir(f"./models/{wandb.run.name}")
-        accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb.run.name}")
+        # accelerator.unwrap_model(model.merge_and_unload()).save_pretrained(f"./models/{wandb.run.name}")
+        accelerator.unwrap_model(model).save_pretrained(f"./models/{wandb.run.name}")
         tokenizer.save_pretrained(f"./models/{wandb.run.name}")
         processor.save_pretrained(f"./models/{wandb.run.name}")
 
