@@ -98,7 +98,7 @@ def execute():
         tokenizer = WhisperTokenizer.from_pretrained(MODEL, language="English", task="transcribe")
 
         # model!
-        model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+        base = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
         model = get_peft_model(base, lora)
 
         # train only the decoder
