@@ -39,7 +39,7 @@ def execute():
         lora_alpha = 32,
         lora_dropout = 0.1,
         lora_target = ["q_proj", "v_proj", "out_proj"],
-        r = 16,
+        r = 8,
     )
 
     # start wandb
