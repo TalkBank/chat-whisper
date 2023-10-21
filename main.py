@@ -25,8 +25,8 @@ from deepspeed.accelerator import get_accelerator
 
 def execute():
 
-    accelerator = Accelerator(log_with="wandb")
-    # accelerator = Accelerator()
+    # accelerator = Accelerator(log_with="wandb")
+    accelerator = Accelerator()
     DEVICE = accelerator.device
 
     # weights and biases
@@ -37,12 +37,23 @@ def execute():
         # epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-medium",
+        lora_alpha = 32,
+        lora_dropout = 0.1,
+        lora_target = ["q_proj", "v_proj", "out_proj"],
+        r = 8,
     )
 
     # start wandb
     accelerator.init_trackers(project_name='chat-whisper',
                               init_kwargs={"wandb": {"entity": "jemoka"}},
                               config=config)
+
+    peft_config = LoraConfig(task_type=TaskType.SEQ_2_SEQ_LM,
+                             inference_mode=False,
+                             r=config["r"],
+                             target_modules=config["lora_target"],
+                             lora_alpha=config["lora_alpha"],
+                             lora_dropout=config["lora_dropout"])
     # wandb.init(project='chat-whisper', entity='jemoka', config=hyperparametre_defaults)
 
     # get config
@@ -84,6 +95,7 @@ def execute():
 
     # model!
     model = WhisperForConditionalGeneration.from_pretrained(f"{MODEL}")
+    model = get_peft_model(model, peft_config)
     model.train()
 
     # train only the decoder
@@ -164,7 +176,7 @@ def execute():
     accelerator.wait_for_everyone()
     wandb_t = accelerator.get_tracker("wandb")
     os.mkdir(f"./models/{wandb_t.run.name}")
-    accelerator.unwrap_model(model).save_pretrained(f"./models/{wandb_t.run.name}")
+    accelerator.unwrap_model(model).merge_and_unload().save_pretrained(f"./models/{wandb_t.run.name}")
     tokenizer.save_pretrained(f"./models/{wandb_t.run.name}")
     processor.save_pretrained(f"./models/{wandb_t.run.name}")
 
