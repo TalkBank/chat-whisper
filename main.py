@@ -125,7 +125,7 @@ def execute():
                         attention_mask = encoded_audio["attention_mask"],
                         labels=encoded_text["input_ids"])
 
-            loss = accelerator.gather(out["loss"])
+            loss = accelerator.gather(torch.mean(out["loss"]))
             logits = accelerator.gather(out["logits"])
 
             id = random.randint(0,3)
@@ -164,7 +164,7 @@ def execute():
 
                 # logging
                 accelerator.log({
-                    "train_loss": accelerator.gather(loss).item()
+                    "train_loss": accelerator.gather(torch.mean(loss)).item()
                 })
 
                 # log example
