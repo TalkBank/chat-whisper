@@ -31,7 +31,7 @@ def execute():
     # weights and biases
     config = dict(
         lr = 5e-6,
-        batch_size = 4,
+        batch_size = 2,
         epochs = 2,
         # epochs = 0,
         data = "./data/CWR",
