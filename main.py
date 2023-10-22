@@ -172,11 +172,13 @@ def execute():
     accelerator.end_training()
     accelerator.print("Saving model...")
     accelerator.wait_for_everyone()
-    wandb_t = accelerator.get_tracker("wandb")
-    os.mkdir(f"./models/{wandb_t.run.name}")
-    accelerator.unwrap_model(model).merge_and_unload().save_pretrained(f"./models/{wandb_t.run.name}")
-    tokenizer.save_pretrained(f"./models/{wandb_t.run.name}")
-    processor.save_pretrained(f"./models/{wandb_t.run.name}")
+    wandb_t = accelerator.get_tracker("wandb", unwrap=True)
+    with accelerator.on_main_process:
+        name = wandb_t.run.name
+    os.mkdir(f"./models/{name}")
+    tokenizer.save_pretrained(f"./models/{name}")
+    processor.save_pretrained(f"./models/{name}")
+    accelerator.unwrap_model(model).merge_and_unload().save_pretrained(f"./models/{name}")
 
 if __name__ == "__main__":
     execute()
