@@ -32,8 +32,8 @@ def execute():
     config = dict(
         lr = 5e-6,
         batch_size = 1,
-        epochs = 2,
-        # epochs = 0,
+        # epochs = 2,
+        epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-large-v2",
         lora_alpha = 32,
