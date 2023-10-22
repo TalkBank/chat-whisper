@@ -31,15 +31,15 @@ def execute():
     # weights and biases
     config = dict(
         lr = 5e-6,
-        batch_size = 2,
+        batch_size = 4,
         epochs = 2,
         # epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-large-v2",
-        lora_alpha = 32,
+        lora_alpha = 16,
         lora_dropout = 0.1,
         lora_target = ["q_proj", "v_proj", "out_proj"],
-        r = 16,
+        r = 8,
     )
 
     # start wandb
