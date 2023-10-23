@@ -178,7 +178,8 @@ def execute():
     os.mkdir(f"./models/{name}")
     tokenizer.save_pretrained(f"./models/{name}")
     processor.save_pretrained(f"./models/{name}")
-    accelerator.unwrap_model(model).merge_and_unload().save_pretrained(f"./models/{name}")
+    # accelerator.unwrap_model(model).merge_and_unload().save_pretrained(f"./models/{name}")
+    accelerator.unwrap_model(model).save_pretrained(f"./models/{name}")
 
 if __name__ == "__main__":
     execute()
