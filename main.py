@@ -32,8 +32,8 @@ def execute():
     config = dict(
         lr = 5e-6,
         batch_size = 1,
-        # epochs = 2,
-        epochs = 0,
+        epochs = 2,
+        # epochs = 0,
         data = "./data/CWR",
         model="openai/whisper-large-v2",
         lora_alpha = 32,
@@ -169,17 +169,21 @@ def execute():
                 run_log_val()
 
     # write model down
-    accelerator.end_training()
     accelerator.print("Saving model...")
+    import time
+    t = time.time()
+    os.mkdir(f"./models/{t}")
+    tokenizer.save_pretrained(f"./models/{t}")
+    processor.save_pretrained(f"./models/{t}")
+    model.eval()
+    model = accelerator.unwrap_model(model)
+    model.save_pretrained(f"./models/{t}")
+    model.merge_and_unload().save_pretrained(f"./models/{t}")
+    with open(f"./models/{t}/name.txt", 'w') as df:
+        wandb_tracker = accelerator.get_tracker("wandb", unwrap=True)
+        df.write(wandb_tracker.name)
+    accelerator.end_training()
     accelerator.wait_for_everyone()
-    wandb_t = accelerator.get_tracker("wandb", unwrap=True)
-    with accelerator.on_main_process:
-        name = wandb_t.run.name
-    os.mkdir(f"./models/{name}")
-    tokenizer.save_pretrained(f"./models/{name}")
-    processor.save_pretrained(f"./models/{name}")
-    # accelerator.unwrap_model(model).merge_and_unload().save_pretrained(f"./models/{name}")
-    accelerator.unwrap_model(model).save_pretrained(f"./models/{name}")
 
 if __name__ == "__main__":
     execute()
